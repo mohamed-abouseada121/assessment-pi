@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mado | Cloud & DevOps Engineer</title>
+  <meta name="description" content="Production-ready 3-tier AWS cloud application with automated IaC, CI/CD, and observability.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo-badge">AWS</span>
+        <span class="logo-text">Mado.DevOps</span>
+      </div>
+      <div class="nav-status">
+        <span class="status-indicator live" id="system-status-dot"></span>
+        <span class="status-label" id="system-status-text">Cloud System: Active</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-wrapper">
+    <section class="hero-section">
+      <div class="badge-pill">
+        <span class="badge-icon">⚡</span>
+        <span>Automated 3-Tier Cloud Deployment</span>
+      </div>
+
+      <h1 class="hero-title">
+        Architecting Resilient, <br>
+        <span class="gradient-text">Production-Grade Clouds</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Hi, I'm <strong>Mado</strong> — a passionate Cloud & DevOps Engineer focused on Infrastructure as Code (Terraform),
+        cloud automation, containerization, and self-healing distributed architectures.
+      </p>
+
+      <div class="cta-centerpiece">
+        <button id="hr-cta-button" class="btn-primary" aria-label="Open HR message modal">
+          <span class="btn-icon">💌</span>
+          <span class="btn-text">Special Note for the Hiring Team & HR</span>
+          <span class="btn-sparkle">✨</span>
+        </button>
+        <p class="cta-hint">Click the button to query the live backend & Amazon RDS database!</p>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">🏗️</span>
+            <span class="metric-name">Infrastructure as Code</span>
+          </div>
+          <p class="metric-desc">100% Terraform modular architecture across isolated VPC subnets.</p>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">🐳</span>
+            <span class="metric-name">Containerized & Lean</span>
+          </div>
+          <p class="metric-desc">Multi-stage Docker builds, non-root users, stored in private AWS ECR.</p>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">🗄️</span>
+            <span class="metric-name">Managed Database</span>
+          </div>
+          <p class="metric-desc">AWS RDS PostgreSQL strictly isolated in private database subnets.</p>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-icon">🚀</span>
+            <span class="metric-name">Automated CI/CD</span>
+          </div>
+          <p class="metric-desc">GitHub Actions test, build, push, and zero-downtime deployment.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="tech-stack-section">
+      <h2 class="section-title">Core Competencies & Stack</h2>
+      <div class="tech-pills">
+        <span class="tech-pill">AWS (VPC, EC2, RDS, ECR, IAM, CloudWatch)</span>
+        <span class="tech-pill">Terraform HCL</span>
+        <span class="tech-pill">Docker & Compose</span>
+        <span class="tech-pill">GitHub Actions CI/CD</span>
+        <span class="tech-pill">PostgreSQL</span>
+        <span class="tech-pill">Python FastAPI</span>
+        <span class="tech-pill">Linux Hardening</span>
+      </div>
+    </section>
+  </main>
+
+  <div id="hr-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <button id="modal-close" class="modal-close-btn" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header">
+        <div class="modal-icon-badge">💼</div>
+        <div>
+          <h3 id="modal-recipient" class="modal-title">To the Hiring Team</h3>
+          <p class="modal-subtitle">Live Response from Cloud Backend API</p>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div id="modal-loader" class="loader-box">
+          <div class="spinner"></div>
+          <p>Querying backend service & RDS PostgreSQL...</p>
+        </div>
+
+        <div id="modal-content" class="hidden">
+          <div class="message-card">
+            <p id="api-greeting" class="api-greeting"></p>
+            <p id="api-core-message" class="api-message"></p>
+            <blockquote id="api-quote" class="api-quote"></blockquote>
+          </div>
+
+          <div class="telemetry-bar">
+            <div class="telemetry-item">
+              <span class="telemetry-label">RDS Connection</span>
+              <span id="rds-status" class="telemetry-value status-online">Connected</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="telemetry-label">Engine</span>
+              <span class="telemetry-value">Amazon RDS Postgres</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="telemetry-label">Compute</span>
+              <span class="telemetry-value">Docker on EC2</span>
+            </div>
+          </div>
+
+          <div class="reaction-form-wrapper">
+            <h4 class="form-title">Leave a Quick Greeting / Feedback:</h4>
+            <div class="reaction-buttons">
+              <button type="button" class="btn-reaction" data-reaction="Outstanding Setup! 🚀">🚀 Impressive</button>
+              <button type="button" class="btn-reaction" data-reaction="Let's Schedule an Interview! 📅">📅 Interview</button>
+              <button type="button" class="btn-reaction" data-reaction="Coffee Chat! ☕">☕ Coffee Chat</button>
+            </div>
+            <form id="reaction-form" class="reaction-form">
+              <input type="text" id="sender-name" placeholder="Your Name or Team (e.g. Sarah / Cloud Lead)" required maxlength="100">
+              <input type="text" id="sender-note" placeholder="Quick comment or note (optional)" maxlength="200">
+              <button type="submit" class="btn-submit" id="btn-submit-reaction">Submit to PostgreSQL</button>
+            </form>
+            <p id="form-feedback" class="form-feedback hidden"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Crafted by <strong>Mado</strong> for Cloud & DevOps Engineer Evaluation &bull; Fully Automated on AWS</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

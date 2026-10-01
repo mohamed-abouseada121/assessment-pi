@@ -1,0 +1,148 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: mado-cloud
+  ENVIRONMENT: prod
+
+jobs:
+  test:
+    name: Build & Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/backend/requirements.txt
+
+      - name: Run Backend Tests
+        run: |
+          PYTHONPATH=app/backend pytest -v app/backend/tests/test_main.py
+
+  build-and-push:
+    name: Build & Push Docker Images to Amazon ECR
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      backend_image: ${{ steps.build-backend.outputs.image }}
+      frontend_image: ${{ steps.build-frontend.outputs.image }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker-setup-buildx-action@v3
+
+      - name: Build and Push Backend Image
+        id: build-backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app/backend
+          file: ./app/backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend:${{ github.sha }}
+
+      - name: Build and Push Frontend Image
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app/frontend
+          file: ./app/frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend:${{ github.sha }}
+
+  deploy:
+    name: Continuous Deployment to Amazon EC2
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Containers to EC2
+        env:
+          EC2_USER: ubuntu
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: appdb
+          DB_USER: appadmin
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          ssh $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+            
+            mkdir -p /opt/app
+            cd /opt/app
+
+            cat << 'ENVFILE' > .env
+            BACKEND_IMAGE=${ECR_REGISTRY}/mado-cloud-prod-backend:${IMAGE_TAG}
+            FRONTEND_IMAGE=${ECR_REGISTRY}/mado-cloud-prod-frontend:${IMAGE_TAG}
+            DB_HOST=${DB_HOST}
+            DB_PORT=5432
+            DB_NAME=${DB_NAME}
+            DB_USER=${DB_USER}
+            DB_PASSWORD=${DB_PASSWORD}
+            APP_ENV=production
+            ENVFILE
+
+            docker pull ${ECR_REGISTRY}/mado-cloud-prod-backend:${IMAGE_TAG}
+            docker pull ${ECR_REGISTRY}/mado-cloud-prod-frontend:${IMAGE_TAG}
+
+            docker compose down --remove-orphans || true
+            docker compose up -d
+
+            for i in {1..12}; do
+              if curl -s -f http://localhost/health | grep -q "healthy"; then
+                echo "Deployment healthy!"
+                exit 0
+              fi
+              echo "Waiting for healthcheck..."
+              sleep 5
+            done
+
+            echo "Healthcheck timed out!"
+            docker compose logs
+            exit 1
+          EOF
