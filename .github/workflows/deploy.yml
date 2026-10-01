@@ -1,20 +1,29 @@
-name: CI/CD Pipeline
+name: CI/CD PIPELINE
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   AWS_REGION: us-east-1
-  PROJECT_NAME: mado-cloud
-  ENVIRONMENT: prod
+  BACKEND_REPO: mado-cloud-prod-backend
+  FRONTEND_REPO: mado-cloud-prod-frontend
 
 jobs:
   test:
-    name: Build & Run Unit Tests
+    name: 🧪 1. Lint & Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -35,16 +44,18 @@ jobs:
           PYTHONPATH=app/backend pytest -v app/backend/tests/test_main.py
 
   build-and-push:
-    name: Build & Push Docker Images to Amazon ECR
+    name: 🐳 2. Build & Push ECR Images
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
-      backend_image: ${{ steps.build-backend.outputs.image }}
-      frontend_image: ${{ steps.build-frontend.outputs.image }}
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,96 +64,129 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to Amazon ECR
+      - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up Docker Buildx
-        uses: docker-setup-buildx-action@v3
-
-      - name: Build and Push Backend Image
-        id: build-backend
+      - name: Build & Push Backend Image
         uses: docker/build-push-action@v5
         with:
           context: ./app/backend
           file: ./app/backend/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.BACKEND_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and Push Frontend Image
-        id: build-frontend
+      - name: Build & Push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: ./app/frontend
           file: ./app/frontend/Dockerfile
-          push: true
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-frontend:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.FRONTEND_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
-    name: Continuous Deployment to Amazon EC2
+    name: 🚀 3. Self-Healing Deploy to EC2
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Configure SSH Key
+      - name: Get ECR Login Password
+        id: ecr-password
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
+          echo "::add-mask::$ECR_PASSWORD"
+          echo "password=$ECR_PASSWORD" >> $GITHUB_OUTPUT
 
-      - name: Deploy Containers to EC2
+      - name: SSH - Deploy Containers & Verify Health
+        uses: appleboy/ssh-action@v1.0.3
         env:
-          EC2_USER: ubuntu
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_PASSWORD: ${{ steps.ecr-password.outputs.password }}
+          ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
+          BACKEND_IMAGE: ${{ needs.build-and-push.outputs.ecr_registry }}/${{ env.BACKEND_REPO }}:${{ github.sha }}
+          FRONTEND_IMAGE: ${{ needs.build-and-push.outputs.ecr_registry }}/${{ env.FRONTEND_REPO }}:${{ github.sha }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: appdb
           DB_USER: appadmin
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          ssh $EC2_USER@$EC2_HOST << 'EOF'
-            set -e
-            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-            
-            mkdir -p /opt/app
-            cd /opt/app
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 8m
+          envs: ECR_PASSWORD,ECR_REGISTRY,BACKEND_IMAGE,FRONTEND_IMAGE,DB_HOST,DB_PASSWORD,DB_NAME,DB_USER
+          script: |
+            set -euo pipefail
 
-            cat << 'ENVFILE' > .env
-            BACKEND_IMAGE=${ECR_REGISTRY}/mado-cloud-prod-backend:${IMAGE_TAG}
-            FRONTEND_IMAGE=${ECR_REGISTRY}/mado-cloud-prod-frontend:${IMAGE_TAG}
-            DB_HOST=${DB_HOST}
-            DB_PORT=5432
-            DB_NAME=${DB_NAME}
-            DB_USER=${DB_USER}
-            DB_PASSWORD=${DB_PASSWORD}
-            APP_ENV=production
-            ENVFILE
+            mkdir -p /home/ubuntu/app
+            cd /home/ubuntu/app
 
-            docker pull ${ECR_REGISTRY}/mado-cloud-prod-backend:${IMAGE_TAG}
-            docker pull ${ECR_REGISTRY}/mado-cloud-prod-frontend:${IMAGE_TAG}
+            cat <<EOF > docker-compose.yml
+            name: assessment_app
 
-            docker compose down --remove-orphans || true
-            docker compose up -d
+            services:
+              backend:
+                container_name: app-backend
+                image: ${BACKEND_IMAGE}
+                restart: always
+                environment:
+                  - DB_HOST=${DB_HOST}
+                  - DB_PORT=5432
+                  - DB_NAME=${DB_NAME}
+                  - DB_USER=${DB_USER}
+                  - DB_PASSWORD=${DB_PASSWORD}
+                  - APP_ENV=production
+                expose:
+                  - "8000"
 
-            for i in {1..12}; do
+              frontend:
+                container_name: app-frontend
+                image: ${FRONTEND_IMAGE}
+                restart: always
+                ports:
+                  - "80:80"
+                depends_on:
+                  - backend
+            EOF
+
+            echo "$ECR_PASSWORD" | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            docker compose -p assessment_app pull
+
+            docker compose -p assessment_app down --timeout 10 --remove-orphans || true
+            docker compose -p assessment_app up -d
+
+            echo "Waiting for services to become healthy..."
+            HEALTHY=false
+            for i in {1..20}; do
               if curl -s -f http://localhost/health | grep -q "healthy"; then
-                echo "Deployment healthy!"
-                exit 0
+                echo "✅ Deployment is live and healthy!"
+                curl -s http://localhost/health
+                HEALTHY=true
+                break
               fi
-              echo "Waiting for healthcheck..."
-              sleep 5
+              echo "Attempt $i/20: Waiting for health endpoint..."
+              sleep 3
             done
 
-            echo "Healthcheck timed out!"
-            docker compose logs
-            exit 1
-          EOF
+            if [ "$HEALTHY" = false ]; then
+              echo "❌ Healthcheck failed! Dumping container logs:"
+              docker compose -p assessment_app logs --tail=50
+              exit 1
+            fi
+
+            docker image prune -af --filter "until=72h" || true
