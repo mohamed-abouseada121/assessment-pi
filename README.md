@@ -1,6 +1,6 @@
 # Production-Ready 3-Tier Cloud Infrastructure & Automation Showcase
 
-[![CI/CD Pipeline](https://github.com/mado/cloud-devops-assessment/actions/workflows/deploy.yml/badge.svg)](https://github.com/mado/cloud-devops-assessment/actions)
+[![CI/CD Pipeline](https://github.com/mohamed-abouseada121/assessment-pi/actions/workflows/deploy.yml/badge.svg)](https://github.com/mohamed-abouseada121/assessment-pi/actions)
 [![IaC: Terraform](https://img.shields.io/badge/IaC-Terraform_1.5+-623CE4?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Cloud: AWS](https://img.shields.io/badge/Cloud-AWS-232F3E?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
 [![Containers: Docker](https://img.shields.io/badge/Containers-Docker_Multi--Stage-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -138,8 +138,8 @@ To run the entire 3-tier application locally with Docker:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/mado/cloud-devops-assessment.git
-cd cloud-devops-assessment/app
+git clone https://github.com/mohamed-abouseada121/assessment-pi.git
+cd assessment-pi/app
 
 # 2. Launch all services (PostgreSQL, Backend API, Frontend Nginx)
 docker compose up --build -d
