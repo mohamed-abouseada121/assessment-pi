@@ -43,6 +43,11 @@ variable "key_name" {
   default = ""
 }
 
+variable "public_key" {
+  type    = string
+  default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyhGweGGLJMkmu6gbIWr8CXp3dE+2utDKwssejG9S5v mado@DESKTOP-SBUDLNE"
+}
+
 variable "db_name" {
   type    = string
   default = "appdb"

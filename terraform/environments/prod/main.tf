@@ -64,6 +64,7 @@ module "ec2" {
   ec2_security_group_id = module.security.ec2_security_group_id
   instance_type         = var.instance_type
   key_name              = var.key_name
+  public_key            = var.public_key
   tags                  = var.tags
 }
 

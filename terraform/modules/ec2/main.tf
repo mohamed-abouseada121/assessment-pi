@@ -13,6 +13,16 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+resource "aws_key_pair" "this" {
+  count      = var.public_key != "" ? 1 : 0
+  key_name   = "${var.project_name}-${var.environment}-key"
+  public_key = var.public_key
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-${var.environment}-key"
+  })
+}
+
 resource "aws_iam_role" "ec2" {
   name = "${var.project_name}-${var.environment}-ec2-role"
 
@@ -61,7 +71,7 @@ resource "aws_instance" "this" {
   vpc_security_group_ids      = [var.ec2_security_group_id]
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
   associate_public_ip_address = true
-  key_name                    = var.key_name != "" ? var.key_name : null
+  key_name                    = var.public_key != "" ? aws_key_pair.this[0].key_name : (var.key_name != "" ? var.key_name : null)
 
   user_data = file("${path.module}/user_data.sh")
 

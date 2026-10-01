@@ -26,6 +26,11 @@ variable "key_name" {
   default = ""
 }
 
+variable "public_key" {
+  type    = string
+  default = ""
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
