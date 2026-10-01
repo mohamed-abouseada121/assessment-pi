@@ -18,7 +18,7 @@ variable "ec2_security_group_id" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.small"
+  default = "t3.micro"
 }
 
 variable "key_name" {

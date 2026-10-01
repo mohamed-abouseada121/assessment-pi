@@ -194,7 +194,15 @@ Upon successful completion, Terraform outputs:
 - `ec2_public_ip`: Public IP of the host instance.
 - `rds_endpoint`: Internal RDS connection endpoint.
 - `backend_ecr_url` & `frontend_ecr_url`: Target ECR repository URIs.
-- `cloudWatch_log_group`: Monitoring log group identifier.
+- `cloudwatch_log_group`: Monitoring log group identifier.
+
+### AWS Free Tier Optimization (Zero Unexpected Costs):
+All default parameters are configured to stay 100% within the AWS 12-Month Free Tier:
+- **EC2 Compute**: `t3.micro` instance (750 hours/month free).
+- **RDS PostgreSQL**: `db.t3.micro` Single-AZ with 20 GB `gp2` storage (750 hours/month free, `max_allocated_storage = 20` to prevent billing).
+- **Networking**: Direct Internet Gateway routing with $0.00 NAT Gateway charges.
+- **ECR Repositories**: Lifecycle policies automatically purge older revisions to keep the last 3 images (< 500 MB monthly free limit).
+- **CloudWatch Observability**: 2 alarms and 7-day log retention (< 10 free alarms, < 5 GB ingestion).
 
 ---
 

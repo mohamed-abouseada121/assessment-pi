@@ -35,7 +35,7 @@ variable "allowed_ssh_cidr" {
 
 variable "instance_type" {
   type    = string
-  default = "t3.small"
+  default = "t3.micro"
 }
 
 variable "key_name" {
@@ -60,7 +60,7 @@ variable "db_password" {
 
 variable "db_instance_class" {
   type    = string
-  default = "db.t4g.micro"
+  default = "db.t3.micro"
 }
 
 variable "tags" {
