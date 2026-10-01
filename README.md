@@ -204,6 +204,8 @@ All default parameters are configured to stay 100% within the AWS 12-Month Free 
 - **ECR Repositories**: Lifecycle policies automatically purge older revisions to keep the last 3 images (< 500 MB monthly free limit).
 - **CloudWatch Observability**: 2 alarms and 7-day log retention (< 10 free alarms, < 5 GB ingestion).
 
+> **📝 Free Tier Note:** This assessment runs on a personal AWS account using only Free Tier–eligible resources (`t3.micro` EC2, `db.t3.micro` RDS, `eu-north-1` region). No unexpected charges are incurred. The infrastructure does not need to stay running after submission — screenshots and a live URL are included as proof.
+
 ---
 
 ## 7. CI/CD Pipeline & Secrets Management
