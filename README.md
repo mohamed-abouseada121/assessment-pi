@@ -180,3 +180,25 @@ Push to `main` triggers 3 stages automatically:
 2. **Managed RDS instead of a DB container** — automated backups, patching, and encryption handled by AWS. No operational overhead.
 
 3. **Modular Terraform** — 6 separate modules (`vpc`, `security`, `ec2`, `rds`, `ecr`, `monitoring`), each independently reusable.
+
+---
+
+## Deployment Screenshots
+
+### 1. Live Application (Frontend)
+![Frontend Homepage](docs/screenshots/01-frontend-homepage.png)
+
+### 2. HR Modal — RDS Connected & Data Written
+![HR Modal with PostgreSQL confirmation](docs/screenshots/02-hr-modal-rds-connected.png)
+
+### 3. Health Endpoint (`/health`)
+![Health endpoint showing healthy + connected](docs/screenshots/03-health-endpoint.png)
+
+### 4. CI/CD Pipeline — All Jobs Passed
+![GitHub Actions pipeline success](docs/screenshots/04-cicd-pipeline-success.png)
+
+### 5. AWS EC2 — Instance Running
+![EC2 instance running t3.micro](docs/screenshots/05-aws-ec2-running.png)
+
+### 6. AWS RDS — Database Available
+![RDS PostgreSQL available](docs/screenshots/06-aws-rds-available.png)
