@@ -1,6 +1,5 @@
 resource "aws_cloudwatch_log_group" "app" {
-  name              = "/aws/ec2/${var.project_name}-${var.environment}"
-  retention_in_days = 7
+  name = "/aws/ec2/${var.project_name}-${var.environment}"
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-${var.environment}-logs"

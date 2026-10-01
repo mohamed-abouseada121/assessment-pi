@@ -37,6 +37,7 @@ module "security" {
 }
 
 module "ecr" {
+  count        = var.enable_ecr ? 1 : 0
   source       = "../../modules/ecr"
   project_name = var.project_name
   environment  = var.environment

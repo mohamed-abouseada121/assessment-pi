@@ -38,10 +38,6 @@ resource "aws_iam_role" "ec2" {
       }
     ]
   })
-
-  tags = merge(var.tags, {
-    Name = "${var.project_name}-${var.environment}-ec2-role"
-  })
 }
 
 resource "aws_iam_role_policy_attachment" "ecr" {

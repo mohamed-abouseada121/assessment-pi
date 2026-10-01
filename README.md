@@ -21,12 +21,12 @@ flowchart TD
     end
 
     subgraph AWS ["Amazon Web Services (VPC: 10.0.0.0/16)"]
-        subgraph PublicSubnets ["Public Subnets (Multi-AZ: us-east-1a / 1b)"]
+        subgraph PublicSubnets ["Public Subnets (Multi-AZ: eu-north-1a / 1b)"]
             IGW["Internet Gateway"]
             EC2["EC2 Instance (Docker Engine)\n• Frontend Container (Nginx :80)\n• Backend Container (FastAPI :8000)\n• CloudWatch Logging"]
         end
 
-        subgraph PrivateSubnets ["Private Subnets (Multi-AZ: us-east-1a / 1b)"]
+        subgraph PrivateSubnets ["Private Subnets (Multi-AZ: eu-north-1a / 1b)"]
             RDS[("Amazon RDS PostgreSQL\n(Encrypted at Rest, Port 5432)")]
         end
 
@@ -49,7 +49,7 @@ flowchart TD
 ```
 
 ### Core Architecture Components:
-- **Networking**: Custom AWS VPC (`10.0.0.0/16`) split across 2 Availability Zones (`us-east-1a`, `us-east-1b`), containing 2 public subnets for compute/ingress and 2 isolated private subnets for database workloads.
+- **Networking**: Custom AWS VPC (`10.0.0.0/16`) split across 2 Availability Zones (`eu-north-1a`, `eu-north-1b`), containing 2 public subnets for compute/ingress and 2 isolated private subnets for database workloads.
 - **Compute**: Amazon EC2 instance running Docker Engine with containerized frontend and backend services orchestrated through Docker Compose.
 - **Database**: Managed **Amazon RDS PostgreSQL 16**, fully isolated in private database subnets with storage encryption enabled (`gp3`, encrypted with KMS).
 - **Container Registry**: **Amazon ECR** with automated vulnerability scan-on-push and lifecycle rules (retaining the 10 most recent images to optimize storage costs).

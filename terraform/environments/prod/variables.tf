@@ -1,6 +1,6 @@
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "eu-north-1"
 }
 
 variable "project_name" {
@@ -46,6 +46,11 @@ variable "key_name" {
 variable "public_key" {
   type    = string
   default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyhGweGGLJMkmu6gbIWr8CXp3dE+2utDKwssejG9S5v mado@DESKTOP-SBUDLNE"
+}
+
+variable "enable_ecr" {
+  type    = bool
+  default = true
 }
 
 variable "db_name" {

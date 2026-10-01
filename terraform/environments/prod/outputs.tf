@@ -19,11 +19,11 @@ output "rds_address" {
 }
 
 output "backend_ecr_url" {
-  value = module.ecr.backend_repository_url
+  value = var.enable_ecr ? module.ecr[0].backend_repository_url : ""
 }
 
 output "frontend_ecr_url" {
-  value = module.ecr.frontend_repository_url
+  value = var.enable_ecr ? module.ecr[0].frontend_repository_url : ""
 }
 
 output "cloudwatch_log_group" {

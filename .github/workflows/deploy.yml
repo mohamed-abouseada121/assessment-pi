@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: eu-north-1
   BACKEND_REPO: mado-cloud-prod-backend
   FRONTEND_REPO: mado-cloud-prod-frontend
 

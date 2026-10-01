@@ -1,4 +1,4 @@
-aws_region         = "us-east-1"
+aws_region         = "eu-north-1"
 project_name       = "mado-cloud"
 environment        = "prod"
 vpc_cidr           = "10.0.0.0/16"
@@ -6,6 +6,7 @@ allowed_ssh_cidr   = "0.0.0.0/0"
 instance_type      = "t3.micro"
 key_name           = ""
 public_key         = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyhGweGGLJMkmu6gbIWr8CXp3dE+2utDKwssejG9S5v mado@DESKTOP-SBUDLNE"
+enable_ecr         = true
 db_name            = "appdb"
 db_username        = "appadmin"
 db_password        = "ChangeMeStrongPassword123!"
