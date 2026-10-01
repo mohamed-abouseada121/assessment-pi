@@ -19,9 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let selectedReaction = 'Outstanding Setup! 🚀';
 
-  const API_BASE = window.location.port === '80' || window.location.port === '' 
-    ? '' 
-    : 'http://localhost:8000';
+  const API_BASE = '';
 
   async function checkSystemHealth() {
     try {
