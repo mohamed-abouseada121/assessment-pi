@@ -18,6 +18,8 @@ env:
   AWS_REGION: eu-north-1
   BACKEND_REPO: mado-cloud-prod-backend
   FRONTEND_REPO: mado-cloud-prod-frontend
+  DB_NAME: appdb
+  DB_USER: appadmin
 
 jobs:
   test:
@@ -99,72 +101,44 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Get ECR Login Password
-        id: ecr-password
-        run: |
-          ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          echo "::add-mask::$ECR_PASSWORD"
-          echo "password=$ECR_PASSWORD" >> $GITHUB_OUTPUT
+      - name: Copy Compose Template to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "app/docker-compose.prod.yml"
+          target: "/home/ubuntu/app"
+          strip_components: 1
 
       - name: SSH - Deploy Containers & Verify Health
         uses: appleboy/ssh-action@v1.0.3
         env:
-          ECR_PASSWORD: ${{ steps.ecr-password.outputs.password }}
           ECR_REGISTRY: ${{ needs.build-and-push.outputs.ecr_registry }}
           BACKEND_IMAGE: ${{ needs.build-and-push.outputs.ecr_registry }}/${{ env.BACKEND_REPO }}:${{ github.sha }}
           FRONTEND_IMAGE: ${{ needs.build-and-push.outputs.ecr_registry }}/${{ env.FRONTEND_REPO }}:${{ github.sha }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: appdb
-          DB_USER: appadmin
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 8m
-          envs: ECR_PASSWORD,ECR_REGISTRY,BACKEND_IMAGE,FRONTEND_IMAGE,DB_HOST,DB_PASSWORD,DB_NAME,DB_USER
+          envs: ECR_REGISTRY,BACKEND_IMAGE,FRONTEND_IMAGE,DB_HOST,DB_PASSWORD,DB_NAME,DB_USER
           script: |
             set -euo pipefail
-
-            mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
 
-            cat <<EOF > docker-compose.yml
-            name: assessment_app
+            aws ecr get-login-password --region eu-north-1 | \
+              docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-            services:
-              backend:
-                container_name: app-backend
-                image: ${BACKEND_IMAGE}
-                restart: always
-                environment:
-                  - DB_HOST=${DB_HOST}
-                  - DB_PORT=5432
-                  - DB_NAME=${DB_NAME}
-                  - DB_USER=${DB_USER}
-                  - DB_PASSWORD=${DB_PASSWORD}
-                  - APP_ENV=production
-                expose:
-                  - "8000"
+            envsubst < docker-compose.prod.yml > docker-compose.yml
 
-              frontend:
-                container_name: app-frontend
-                image: ${FRONTEND_IMAGE}
-                restart: always
-                ports:
-                  - "80:80"
-                depends_on:
-                  - backend
-            EOF
-
-            echo "$ECR_PASSWORD" | docker login --username AWS --password-stdin ${ECR_REGISTRY}
             docker compose -p assessment_app pull
 
             docker compose -p assessment_app down --timeout 10 --remove-orphans || true
@@ -189,4 +163,4 @@ jobs:
               exit 1
             fi
 
-            docker image prune -af --filter "until=72h" || true
+            docker image prune -f || true
